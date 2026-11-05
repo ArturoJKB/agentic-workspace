@@ -1,0 +1,6 @@
+.env
+data/
+searxng/*.lock
+*.log
+sources/*
+!sources/.gitkeep
