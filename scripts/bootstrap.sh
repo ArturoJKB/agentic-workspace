@@ -28,3 +28,9 @@ if ! grep -q '^OPENROUTER_API_KEY=..*' .env; then
   echo "next: set OPENROUTER_API_KEY in .env (https://openrouter.ai/keys)"
   echo "then: docker compose up -d   (add: --profile agents for the terminal)"
 fi
+
+# Install the `webui` launcher into ~/.local/bin (PATH entry, like opencode/orca).
+mkdir -p "$HOME/.local/bin"
+sed "s|^DIR=.*|DIR=\"$(pwd)\"|" scripts/webui > "$HOME/.local/bin/webui"
+chmod +x "$HOME/.local/bin/webui"
+echo "installed launcher: webui  (status|up|down|logs|open)"

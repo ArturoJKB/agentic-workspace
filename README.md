@@ -36,6 +36,20 @@ Optionally also start the **agent terminal** (chat-over-your-code):
 docker compose --profile agents up -d
 ```
 
+## Daily launcher
+
+`bootstrap.sh` installs a `webui` command into `~/.local/bin` (same pattern as
+`opencode`/`orca`) that manages the stack and opens the browser — it even
+self-elevates into the `docker` group via `newgrp` if your shell session lacks it:
+
+```bash
+webui          # start everything (agents profile included), wait healthy, open browser
+webui status   # container states
+webui logs     # follow open-webui logs
+webui down     # stop and remove containers
+webui open     # just open the browser
+```
+
 ## What is pre-configured
 
 | Feature | How it is wired |

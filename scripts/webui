@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="$HOME/agentic-workspace"
+URL="http://127.0.0.1:8080"
+
+inner=0
+if [ "${1:-}" = "--in-group" ]; then shift; inner=1; fi
+
+# Re-exec via the docker group if this shell lacks it (no re-login needed).
+if [ "$inner" = "0" ] && ! id -nG | grep -qw docker; then
+  printf '%s\n' "$0 --in-group ${*:-}" | newgrp docker
+  exit $?
+fi
+
+compose() { docker compose -f "$DIR/docker-compose.yml" "$@"; }
+
+wait_healthy() {
+  for _ in $(seq 1 30); do
+    [ "$(curl -s -o /dev/null -w '%{http_code}' "$URL/health" 2>/dev/null)" = "200" ] && return 0
+    sleep 3
+  done
+  echo "open-webui did not become healthy; check: webui logs" >&2
+  return 1
+}
+
+case "${1:-}" in
+  up)     compose --profile agents up -d ;;
+  agents) compose --profile agents up -d open-terminal ;;
+  down)   compose --profile agents down ;;
+  stop)   compose stop ;;
+  start)  compose start ;;
+  restart) compose --profile agents restart ;;
+  status) docker ps --format '{{.Names}}: {{.Image}} [{{.Status}}]' ;;
+  logs)   shift; compose logs -f --tail=100 "${1:-open-webui}" ;;
+  open)   xdg-open "$URL" >/dev/null 2>&1 ;;
+  "")
+    compose --profile agents up -d
+    wait_healthy
+    xdg-open "$URL" >/dev/null 2>&1 &
+    echo "Open Webui ready: $URL"
+    ;;
+  *) echo "usage: webui [up|agents|down|stop|start|restart|status|logs [svc]|open]" >&2; exit 2 ;;
+esac
