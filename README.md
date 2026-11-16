@@ -100,6 +100,33 @@ model runs real shell commands in the sandbox; your mounted project is
 read-only. For editing code, use a dedicated coding agent (e.g. opencode) —
 this kit is the chat/research layer, not an IDE.
 
+## Troubleshooting
+
+**Model list is empty, chat says "no models", file uploads fail** — usually one
+root cause: Docker's *embedded DNS* (`127.0.0.11`) returns `SERVFAIL` after the
+host's network changes (Wi-Fi switch, VPN, reboot order). Containers keep
+outbound connectivity, but any DNS lookup from inside fails, so Open WebUI
+cannot fetch the OpenRouter model list nor the first-use embedding model.
+
+Verify (prints `ok` when healthy):
+
+```bash
+docker exec -i open-webui python -c 'import socket; print(socket.gethostbyname("openrouter.ai"), "ok")'
+```
+
+Fix once — pin public resolvers for the embedded DNS (safe: keeps
+between-container service names):
+
+```bash
+sudo mkdir -p /etc/docker
+echo '{"dns": ["1.1.1.1", "8.8.8.8"]}' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+webui   # containers auto-start; webui runs this same check and warns if broken
+```
+
+Do **not** set `dns:` per service in the compose file — it bypasses Docker's
+embedded DNS and breaks `searxng`/`open-terminal` name resolution.
+
 ## Security notes
 
 - All ports are loopback-only. Do not expose `:8080`/`:8888`/`:8000` directly;

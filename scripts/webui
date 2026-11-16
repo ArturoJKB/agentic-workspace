@@ -23,6 +23,23 @@ wait_healthy() {
   return 1
 }
 
+dns_check() {
+  # Docker's embedded DNS can SERVFAIL after host network changes (empty model
+  # list / upload errors in Open WebUI are usually this). Fail softly with a fix.
+  if docker exec -i open-webui python -c 'import socket; socket.gethostbyname("openrouter.ai")' >/dev/null 2>&1; then
+    return 0
+  fi
+  {
+    echo "warning: containers cannot resolve external DNS (Docker embedded DNS SERVFAIL)." >&2
+    echo "fix once:" >&2
+    echo '  sudo mkdir -p /etc/docker' >&2
+    echo '  echo '"'"'{"dns": ["1.1.1.1", "8.8.8.8"]}'"'"' | sudo tee /etc/docker/daemon.json' >&2
+    echo "  sudo systemctl restart docker" >&2
+    echo "(do NOT set per-container 'dns:' — it breaks service-name resolution between containers)" >&2
+  }
+  return 1
+}
+
 case "${1:-}" in
   up)     compose --profile agents up -d ;;
   agents) compose --profile agents up -d open-terminal ;;
@@ -32,12 +49,14 @@ case "${1:-}" in
   restart) compose --profile agents restart ;;
   status) docker ps --format '{{.Names}}: {{.Image}} [{{.Status}}]' ;;
   logs)   shift; compose logs -f --tail=100 "${1:-open-webui}" ;;
+  check)  dns_check ;;
   open)   xdg-open "$URL" >/dev/null 2>&1 ;;
   "")
     compose --profile agents up -d
     wait_healthy
+    dns_check || true
     xdg-open "$URL" >/dev/null 2>&1 &
     echo "Open Webui ready: $URL"
     ;;
-  *) echo "usage: webui [up|agents|down|stop|start|restart|status|logs [svc]|open]" >&2; exit 2 ;;
+  *) echo "usage: webui [up|agents|down|stop|start|restart|status|logs [svc]|check|open]" >&2; exit 2 ;;
 esac
