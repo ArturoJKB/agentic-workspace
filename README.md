@@ -126,6 +126,28 @@ when one runs out of quota — the fix for "credits exhausted mid-chat".
    when the top of the chain is exhausted, OmniRoute silently rolls to the
    next. Keep the direct OpenRouter connection too as a second path.
 
+Tip: the gateway exposes ~1,000 models; keep the Open WebUI picker clean with a
+per-connection allowlist — Admin Panel → Settings → Connections → OpenAI → the
+OmniRoute connection → set `model_ids` to just your combos
+(e.g. `main-chat`). Other clients (opencode…) can still use every gateway model.
+
+To route **opencode** through the gateway too, add to `~/.config/opencode/opencode.json`:
+
+```jsonc
+"provider": {
+  "gateway": {
+    "npm": "@ai-sdk/openai-compatible",
+    "name": "OmniRoute (local gateway)",
+    "options": { "baseURL": "http://127.0.0.1:20128/v1", "apiKey": "omniroute-local" },
+    "models": {
+      "coding": { "name": "Coding chain", "tool_call": true },
+      "main-chat": { "name": "Main chat chain", "tool_call": true }
+    }
+  }
+},
+"model": "gateway/coding"
+```
+
 Notes: the gateway listens on loopback only; with `REQUIRE_API_KEY=false` the
 `/v1` proxy is open to the compose network + your machine (single-user kit
 default — set `REQUIRE_API_KEY=true` in the service if you bind elsewhere).
