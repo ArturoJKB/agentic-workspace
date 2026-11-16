@@ -138,7 +138,7 @@ embedded DNS and breaks `searxng`/`open-terminal` name resolution.
 
 ## Update policy
 
-Pinned: `open-webui:v0.13.0`. Rolling by upstream convention:
+Pinned: `open-webui:v0.13.3`. Rolling by upstream convention:
 `searxng:latest`, `open-terminal:slim`. To upgrade Open WebUI, change the tag
 and `docker compose up -d` (data persists in `./data/`).
 
