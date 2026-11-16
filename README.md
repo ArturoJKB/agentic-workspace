@@ -36,6 +36,13 @@ Optionally also start the **agent terminal** (chat-over-your-code):
 docker compose --profile agents up -d
 ```
 
+And optionally the **OmniRoute gateway** (multi-provider routing + quota
+fallback — never lose a chat mid-way when one provider runs out of credits):
+
+```bash
+docker compose --profile gateway up -d
+```
+
 ## Daily launcher
 
 `bootstrap.sh` installs a `webui` command into `~/.local/bin` (same pattern as
@@ -99,6 +106,31 @@ Ask things like *"list /workspace and tell me what this project is"*. The
 model runs real shell commands in the sandbox; your mounted project is
 read-only. For editing code, use a dedicated coding agent (e.g. opencode) —
 this kit is the chat/research layer, not an IDE.
+
+## Optional: OmniRoute gateway (quota-proof chats)
+
+`docker compose --profile gateway up -d` adds OmniRoute (+ Redis): one
+OpenAI-compatible endpoint that routes across providers and **auto-falls-back**
+when one runs out of quota — the fix for "credits exhausted mid-chat".
+
+1. Dashboard: `http://127.0.0.1:20128` — log in with `GATEWAY_INITIAL_PASSWORD`
+   (generated into `.env` by `bootstrap.sh`).
+2. Add a provider connection (Settings → Providers): e.g. OpenRouter with your
+   key, plus any free-tier providers you hold keys for (Gemini, Groq…).
+3. Create a **combo** (strategy `priority` = strict fallback chain), e.g.
+   `main-chat` → `openrouter/deepseek/deepseek-chat`,
+   `openrouter/qwen/qwen3-coder`, `openrouter/z-ai/glm-4.6`.
+4. Point Open WebUI at the gateway: Admin Panel → Settings → Connections →
+   OpenAI → add Base URL `http://omniroute:20128/v1` with any placeholder key.
+   The combo appears in the model picker as one stable model (`main-chat`);
+   when the top of the chain is exhausted, OmniRoute silently rolls to the
+   next. Keep the direct OpenRouter connection too as a second path.
+
+Notes: the gateway listens on loopback only; with `REQUIRE_API_KEY=false` the
+`/v1` proxy is open to the compose network + your machine (single-user kit
+default — set `REQUIRE_API_KEY=true` in the service if you bind elsewhere).
+`bootstrap.sh` pre-creates `data/omniroute/` as your user — otherwise Docker
+would create it root-owned and the app would hit `EACCES`.
 
 ## Troubleshooting
 

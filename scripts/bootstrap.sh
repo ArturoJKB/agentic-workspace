@@ -15,11 +15,17 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
+# Pre-create data dirs as the current user: Docker would otherwise create
+# root-owned bind-mount sources (e.g. data/omniroute) that the unprivileged
+# container user cannot write to (EACCES).
+mkdir -p data/open-webui data/omniroute searxng sources
+
 if [ ! -f .env ]; then
   cp .env.example .env
   sed -i "s/^WEBUI_SECRET_KEY=$/WEBUI_SECRET_KEY=$(rand)/" .env
   sed -i "s/^SEARXNG_SECRET=$/SEARXNG_SECRET=$(rand)/" .env
   sed -i "s/^OPEN_TERMINAL_API_KEY=$/OPEN_TERMINAL_API_KEY=$(rand)/" .env
+  sed -i "s/^GATEWAY_INITIAL_PASSWORD=$/GATEWAY_INITIAL_PASSWORD=$(rand)/" .env
   chmod 600 .env
   echo "created .env with generated secrets."
 fi
